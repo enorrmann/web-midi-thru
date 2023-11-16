@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <title>WebMidi testing</title>
+
+
+
+    <script>
+
+
+        var outputport;
+
+        let statechanged = function (event) {
+            let port = event.port;
+            //console.log("ojojo");
+            //console.log(port.id, port.name, port.manufacturer, port.state, port.type);
+
+            // id input midi 1 
+            if (port.id == '0AAD67144EB48105E00228EAF229C8BE36823F210F18910A72857FCC22ED463E' && port.state === 'connected') {
+                console.log("add ilistenerrr");
+                // tiene listener ya ?
+                console.log(port.onmidimessage);
+
+                port.onmidimessage = (msg) => {
+                    console.log(msg);
+                    if (outputport) {
+                        outputport.send(msg.data); 
+                    } else {
+                        console.log("no output");
+                    }
+                };
+            }
+
+
+            //set output    
+            if (port.id == '385B9C24833C60BC6A1DCBB3023226013F670A9D5755E6FCF28F603317530671' && port.state === 'connected') {
+                console.log("set out port");
+                outputport = port;
+            }
+
+        }
+
+        navigator.requestMIDIAccess().then((access) => {
+            access.onstatechange = (event) => {
+                statechanged(event);
+            };
+        });
+
+
+    </script>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+
+</head>
+
+<body>
+    <h1>WebMidi testing</h1>
+</body>
+
+</html>
