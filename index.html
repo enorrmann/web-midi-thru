@@ -11,35 +11,56 @@
 
     <script>
 
+        let log = function () {
+            for (var i = 0; i < arguments.length; i++) {
+                document.body.innerHTML += arguments[i] + ' ';
+            }
+            document.body.innerHTML+= '<br/>';
+        }
+
 
         var outputport;
+        var inputport;
+
+        let addforwarder = function (in_p, out_p) {
+            in_p.onmidimessage = (msg) => {
+                log(msg);
+                if (out_p) {
+                    out_p.send(msg.data);
+                } else {
+                    log("no output");
+                }
+            };
+
+        }
+
+
+
 
         let statechanged = function (event) {
             let port = event.port;
-            //console.log("ojojo");
-            //console.log(port.id, port.name, port.manufacturer, port.state, port.type);
+            //log("ojojo");
+            //log(port.id, port.name, port.manufacturer, port.state, port.type);
 
             // id input midi 1 
-            if (port.id == '0AAD67144EB48105E00228EAF229C8BE36823F210F18910A72857FCC22ED463E' && port.state === 'connected') {
-                console.log("add ilistenerrr");
+            //if (port.id == '0AAD67144EB48105E00228EAF229C8BE36823F210F18910A72857FCC22ED463E' && port.state === 'connected') {
+            if (port.type == 'input' && port.state === 'connected' && !inputport) {
+                log("add niput port");
+                log(port.id, port.name, port.manufacturer, port.state, port.type);
+                inputport = port;
                 // tiene listener ya ?
-                console.log(port.onmidimessage);
+                //log(port.onmidimessage);
 
-                port.onmidimessage = (msg) => {
-                    console.log(msg);
-                    if (outputport) {
-                        outputport.send(msg.data); 
-                    } else {
-                        console.log("no output");
-                    }
-                };
             }
 
 
             //set output    
-            if (port.id == '385B9C24833C60BC6A1DCBB3023226013F670A9D5755E6FCF28F603317530671' && port.state === 'connected') {
-                console.log("set out port");
+            //if (port.id == '385B9C24833C60BC6A1DCBB3023226013F670A9D5755E6FCF28F603317530671' && port.state === 'connected') {
+            if (port.type == 'output' && port.state === 'connected' && (!outputport || outputport.name == inputport.name)) {
+                log("set out port");
+                log(port.id, port.name, port.manufacturer, port.state, port.type);
                 outputport = port;
+                addforwarder(inputport, outputport);
             }
 
         }
