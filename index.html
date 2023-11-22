@@ -5,30 +5,111 @@
 <head>
 
     <meta charset="UTF-8">
+
+
     <title>WebMidi testing</title>
 
 
 
     <script>
+        // ejemplos
+        //https://www.donwalizerjr.com/web-midi-api/
+
+        var midiAccess;
+        var inoutMap = new Map();
+        var allPortMap = new Map();
+
+        let connect = function (in_port_id, out_port_id) {
+            let in_port = inoutMap.get(in_port_id);
+            if (!in_port) {
+                var out_map = new Map();
+                out_map.set(out_port_id, allPortMap.get(out_port_id));
+                inoutMap.set(in_port_id, out_map);
+            } else {
+                in_port.set(out_port_id, allPortMap.get(out_port_id));
+            }
+            addforwarder(in_port_id);
+        }
+
+        let disconnect = function (in_port_id, out_port_id) {
+            let in_port = inoutMap.get(in_port_id);
+            if (in_port) {
+                in_port.delete(out_port_id);
+            }
+        }
+
+        let checkbox_clicked = function (event) {
+            let portArray = event.value.split(',');
+            let input_id = portArray[0];
+            let output_id = portArray[1];
+
+            if (event.checked) {
+                connect(input_id, output_id);
+            } else {
+                disconnect(input_id, output_id);
+            }
+
+
+
+
+            /*var inputElements = document.getElementsByClassName('outputCheckbox');
+            for (var i = 0; inputElements[i]; ++i) {
+                if (inputElements[i].checked) {
+                    var checkedValue = inputElements[i].value;
+                    console.log(checkedValue.split(','));
+                }
+            }*/
+        }
+
+        let add_input_port_html = function (in_p) {
+            let form = document.getElementById("main_form");
+            form.innerHTML += '<h2>' + in_p.name + ' (IN) </h2>';
+
+        }
+        let add_output_port_html = function (in_p, out_p) {
+            let element_id = in_p.id + "," + out_p.id;
+            let form = document.getElementById("main_form");
+            form.innerHTML += '<input id="' + element_id + '" class="outputCheckbox" type="checkbox" onclick="checkbox_clicked(this)" value="' + element_id + '">';
+            form.innerHTML += '<label for="' + element_id + '">' + out_p.name + ' (OUT)</label><br>';
+        };
+
+        let init = function () {
+            const inputs = midiAccess.inputs.values();
+            const outputs = midiAccess.outputs.values();
+            var out_array = [];
+            for (let output = outputs.next(); output && !output.done; output = outputs.next()) {
+                out_array.push(output);
+                allPortMap.set(output.value.id, output.value)
+            }
+
+            for (let input = inputs.next(); input && !input.done; input = inputs.next()) {
+                allPortMap.set(input.value.id, input.value)
+                add_input_port_html(input.value);
+                out_array.forEach(function (output) {
+                    add_output_port_html(input.value, output.value);
+                })
+
+            }
+        }
 
         let log = function () {
             for (var i = 0; i < arguments.length; i++) {
                 document.body.innerHTML += arguments[i] + ' ';
             }
-            document.body.innerHTML+= '<br/>';
+            document.body.innerHTML += '<br/>';
         }
 
 
-        var outputport;
+        // esto deberia ser un array
+        var outputports = [];
         var inputport;
 
-        let addforwarder = function (in_p, out_p) {
-            in_p.onmidimessage = (msg) => {
-                log(msg);
-                if (out_p) {
-                    out_p.send(msg.data);
-                } else {
-                    log("no output");
+        let addforwarder = function (in_port_id) {
+            let port = allPortMap.get(in_port_id);
+            let outputMap = inoutMap.get(in_port_id);
+            port.onmidimessage = (msg) => {
+                if (outputMap.size > 0) {
+                    outputMap.forEach((value, key, map) => value.send(msg.data));
                 }
             };
 
@@ -42,12 +123,12 @@
             //log("ojojo");
             //log(port.id, port.name, port.manufacturer, port.state, port.type);
 
-            // id input midi 1 
-            //if (port.id == '0AAD67144EB48105E00228EAF229C8BE36823F210F18910A72857FCC22ED463E' && port.state === 'connected') {
+            // set input 
             if (port.type == 'input' && port.state === 'connected' && !inputport) {
                 log("add niput port");
-                log(port.id, port.name, port.manufacturer, port.state, port.type);
+                log(port.name, port.manufacturer, port.state, port.type);
                 inputport = port;
+                addforwarder(inputport);
                 // tiene listener ya ?
                 //log(port.onmidimessage);
 
@@ -55,19 +136,21 @@
 
 
             //set output    
-            //if (port.id == '385B9C24833C60BC6A1DCBB3023226013F670A9D5755E6FCF28F603317530671' && port.state === 'connected') {
-            if (port.type == 'output' && port.state === 'connected' && (!outputport || outputport.name == inputport.name)) {
-                log("set out port");
-                log(port.id, port.name, port.manufacturer, port.state, port.type);
-                outputport = port;
-                addforwarder(inputport, outputport);
+            if (port.type == 'output' && port.state === 'connected') {
+                if (inputport && inputport.name != port.name && inputport.manufacturer != port.manufacturer) {
+                    log("add out port");
+                    log(port.name, port.manufacturer, port.state, port.type);
+                    outputports.push(port);
+                }
             }
 
         }
 
         navigator.requestMIDIAccess().then((access) => {
+            midiAccess = access;
+            init();
             access.onstatechange = (event) => {
-                statechanged(event);
+                //statechanged(event);
             };
         });
 
@@ -79,6 +162,8 @@
 
 <body>
     <h1>WebMidi testing</h1>
+    <form id="main_form">
+    </form>
 </body>
 
 </html>
