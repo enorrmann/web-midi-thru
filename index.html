@@ -48,17 +48,6 @@
             } else {
                 disconnect(input_id, output_id);
             }
-
-
-
-
-            /*var inputElements = document.getElementsByClassName('outputCheckbox');
-            for (var i = 0; inputElements[i]; ++i) {
-                if (inputElements[i].checked) {
-                    var checkedValue = inputElements[i].value;
-                    console.log(checkedValue.split(','));
-                }
-            }*/
         }
 
         let add_input_port_html = function (in_p) {
@@ -100,10 +89,6 @@
         }
 
 
-        // esto deberia ser un array
-        var outputports = [];
-        var inputport;
-
         let addforwarder = function (in_port_id) {
             let port = allPortMap.get(in_port_id);
             let outputMap = inoutMap.get(in_port_id);
@@ -112,37 +97,6 @@
                     outputMap.forEach((value, key, map) => value.send(msg.data));
                 }
             };
-
-        }
-
-
-
-
-        let statechanged = function (event) {
-            let port = event.port;
-            //log("ojojo");
-            //log(port.id, port.name, port.manufacturer, port.state, port.type);
-
-            // set input 
-            if (port.type == 'input' && port.state === 'connected' && !inputport) {
-                log("add niput port");
-                log(port.name, port.manufacturer, port.state, port.type);
-                inputport = port;
-                addforwarder(inputport);
-                // tiene listener ya ?
-                //log(port.onmidimessage);
-
-            }
-
-
-            //set output    
-            if (port.type == 'output' && port.state === 'connected') {
-                if (inputport && inputport.name != port.name && inputport.manufacturer != port.manufacturer) {
-                    log("add out port");
-                    log(port.name, port.manufacturer, port.state, port.type);
-                    outputports.push(port);
-                }
-            }
 
         }
 
